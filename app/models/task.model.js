@@ -7,12 +7,12 @@ let db = require("./db");
 let query = `
 create table if not exists task (
  id int primary key auto_increment,
- content varchar(255) ,
+ content varchar(255) not null,
  description varchar(255) ,
- due_date date,
+ due_date date not null,
  is_completed boolean default false,
  created_at timestamp default current_timestamp,
- project_id  int,
+ project_id  int not null,
  foreign key (project_id) references project(id) on delete cascade
 );
 `;
@@ -28,24 +28,26 @@ class Task {
     this.content = task.content;
     this.description = task.description;
     this.due_date = task.due_date;
-    this.is_completed = task.is_completed;
+    this.project_id = task.project_id;
   }
 
   static createTask(task, result) {
     let query =
-      "insert into task(content,description,due_date,is_completed) values (?,?,?,?)";
+      "insert into task(content,description,due_date,project_id) values ?";
 
-    db.query(
-      query,
-      [task.content, task.description, task.due_date, task.is_completed],
-      (err, data) => {
-        if (err) {
-          result(err, null);
-          return;
-        }
-        result(null, { id: this.lastId, ...task });
+    let store = [];
+
+    task.forEach((element) => {
+      store.push(Object.values(element));
+    });
+    
+    db.query(query, [store], (err, data) => {
+      if (err) {
+        result(err, null);
+        return;
       }
-    );
+      result(null,{id:data.insertId,task});
+    });
   }
 
   static getAllTasks(result) {
@@ -73,8 +75,6 @@ class Task {
   static deleteTask(id, result) {
     let query = "delete from task where id=?";
     db.query(query, [id], (err, data) => {
-       
-        
       if (err) {
         return result(err, null);
       }
@@ -101,11 +101,17 @@ class Task {
 
   static updateTask(task, id, result) {
     let query =
-      "update  task set content=?,description=?,due_date=?,is_completed=? where id=? ";
+      "update  task set content=?,description=?,due_date=?,project_id=? where id=? ";
 
     db.query(
       query,
-      [task.content, task.description, task.due_date, task.is_completed, id],
+      [
+        task.content,
+        task.description,
+        task.due_date,
+        task.project_id,
+        id,
+      ],
       (err, data) => {
         if (err) {
           result(err, null);

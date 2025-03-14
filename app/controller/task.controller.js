@@ -1,18 +1,19 @@
 let Task = require("../models/task.model.js");
 
 exports.createTask = (req, res) => {
-  if (!req.body) {
-    res.status(400).send({
-      message: "Enter the details of atsk",
-    });
-    return;
-  }
-  let task = new Task(req.body);
+ 
+if (!req.body || Object.keys(req.body).length === 0) {
+  res.status(400).send({
+    message: "Enter the details of atsk",
+  });
+  return;
+}
 
-  Task.createTask(task, (err, data) => {
+
+  Task.createTask(req.body, (err, data) => {
     if (err) {
       return res.status(404).send({
-        message: err.message || "unbale to create task",
+        message: "unbale to create task or some fileds are data missing",
       });
     }
 

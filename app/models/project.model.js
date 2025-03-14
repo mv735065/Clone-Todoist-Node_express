@@ -9,8 +9,8 @@ function creatTable() {
     let query = `
         create table if not exists project (
          id int primary key auto_increment,
-         name varchar(255) ,
-         color varchar(255) ,
+         name varchar(255) not null,
+         color varchar(255) default 'blue',
          is_favorite boolean default false
         );
         `;
@@ -39,23 +39,29 @@ class Project {
   constructor(project) {
     this.name = project.name;
     this.color = project.color;
-    this.is_favorite = project.is_favorite;
+    this.is_favorite=project.is_favorite;
   }
 
-  static createProject(project, result) {
-    let query = "insert into project(name,color,is_favorite) values (?,?,?)";
+  static createProject(projects, result) {
+    let query = "insert into project(name) values ?";
 
-    db.query(
-      query,
-      [project.name, project.color, project.is_favorite],
-      (err, data) => {
-        if (err) {
-          result(err, null);
-          return;
-        }
-        result(null, { id: this.lastId, ...project });
+    let store = [];
+
+
+
+
+    projects.forEach((ele) => {
+      store.push(Object.values(ele));
+    });
+
+
+    db.query(query, [store], (err, data) => {
+      if (err) {
+        result(err, null);
+        return;
       }
-    );
+      result(null, projects);
+    });
   }
 
   static getAllProjects(result) {
@@ -83,7 +89,6 @@ class Project {
   static deleteProject(id, result) {
     let query = "delete from project where id=?";
     db.query(query, [id], (err, data) => {
-
       if (err) {
         return result(err, null);
       }
@@ -108,25 +113,22 @@ class Project {
   }
 
   static updateProject(project, id, result) {
-  
     let query = "update  project set name=?,color=?,is_favorite=? where id=? ";
 
-    db.query(
-      query,
-      [project.name, project.color, project.is_favorite, id],
-      (err, data) => {
-        if (err) {
-          result(err, null);
-          return;
-        }
-        if (data.affectedRows==0) {
-            result({ kind: "not_found" }, null);
-            return;
-        }
-        result(null, { id: id, ...project });
+    db.query(query, [project.name, project.color,project.is_favorite, id], (err, data) => {
+      if (err) {
+        result(err, null);
+        return;
       }
-    );
+      if (data.affectedRows == 0) {
+        result({ kind: "not_found" }, null);
+        return;
+      }
+      result(null, { id: id, ...project });
+    });
   }
 }
+
+Project.createProject("da","asd");
 
 module.exports = Project;

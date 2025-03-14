@@ -7,12 +7,12 @@ let {
 } = require("../middleware/errorTypes");
 
 exports.createProject = (req, res, next) => {
-  if (!req.body || !req.body.name || !req.body.color) {
+  if (!req.body || Object.keys(req.body)==0) {
     return next(
       new ValidationError("Please provide content to create Project")
     );
   }
-  let project = new Project(req.body);
+  let project =req.body;
 
   Project.createProject(project, (err, data) => {
     if (err) {
@@ -82,7 +82,7 @@ exports.deleteAllProjects = (req, res, next) => {
 };
 
 exports.updateProject = (req, res, next) => {
-  if (!req.body || !req.body.name || !req.body.color) {
+  if (!req.body || Object.keys(req.body)==0) {
     return next(
       new ValidationError("Please provide content to create Project")
     );
