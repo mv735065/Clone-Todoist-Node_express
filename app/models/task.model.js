@@ -1,10 +1,13 @@
 let db = require("./db");
+let fs = require("fs");
 
 // Tasks
 // Create, Update, Delete a task
 // Each task will have content, description, due date, is_completed, created_at
 
-let query = `
+function creatTable() {
+  return new Promise((resolve, reject) => {
+    let query = `
 create table if not exists task (
  id int primary key auto_increment,
  content varchar(255) not null,
@@ -17,11 +20,26 @@ create table if not exists task (
 );
 `;
 
-db.query(query, (err, res) => {
-  if (err) {
-    throw new Error("Unbale to create the tables task");
-  } else console.log("Created the table task");
-});
+    db.query(query, (err, res) => {
+      if (err) {
+        throw new Error("Unbale to create the tables task");
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
+async function creatingTableTask() {
+  try {
+    let res = await creatTable();
+    console.log("Created the table task");
+    Task.createTask("", "");
+  } catch (err) {
+    console.log(err.message);
+  }
+}
+creatingTableTask();
 
 class Task {
   constructor(task) {
@@ -31,23 +49,54 @@ class Task {
     this.project_id = task.project_id;
   }
 
-  static createTask(task, result) {
+  static async createTask(task, result) {
+    let    oneLakh=100000;
+    let oneMillion=1000000;
+    let tenMillion=10000000;
     let query =
       "insert into task(content,description,due_date,project_id) values ?";
 
     let store = [];
-
-    task.forEach((element) => {
-      store.push(Object.values(element));
-    });
-    
-    db.query(query, [store], (err, data) => {
-      if (err) {
-        result(err, null);
-        return;
+    for (let j = 1; j <= 10; j++) {
+      for (let i = 1; i <= oneMillion; i++) {
+        store.push([`Task-${i}`, `Descript-${i}`, new Date(), j]);
       }
-      result(null,{id:data.insertId,task});
-    });
+    }
+
+  
+    for (let i = 0; i < store.length; i += oneMillion) {
+      let data = store.slice(i, i + oneMillion);
+      try {
+
+       
+        let prom=[];
+        for(let j=0;j<oneMillion;j+=oneLakh){
+          let chunkData=data.slice(j,j+oneLakh);
+
+          prom.push( new Promise((resolve, reject) => {
+            db.query(query, [data], (err, res) => {
+              if (err) reject(err);
+              else {
+                console.log(`Inserted chunk ${j + oneLakh}`);
+  
+                resolve(res);
+              }
+            });
+          }));
+          
+        }
+        await prom.all((data)=>{
+          console.log(`Inserted batch ${i + oneMillion}`);
+        })
+        .catch((err)=>{
+          console.log(err);
+          
+        })
+       
+      } catch (err) {
+        console.log("Unbake", err);
+      }
+    }
   }
 
   static getAllTasks(result) {
@@ -105,13 +154,7 @@ class Task {
 
     db.query(
       query,
-      [
-        task.content,
-        task.description,
-        task.due_date,
-        task.project_id,
-        id,
-      ],
+      [task.content, task.description, task.due_date, task.project_id, id],
       (err, data) => {
         if (err) {
           result(err, null);

@@ -39,29 +39,42 @@ class Project {
   constructor(project) {
     this.name = project.name;
     this.color = project.color;
-    this.is_favorite=project.is_favorite;
+    this.is_favorite = project.is_favorite;
   }
 
-  static createProject(projects, result) {
+  static createProject() {
     let query = "insert into project(name) values ?";
 
     let store = [];
 
+    for (let i = 1; i <= 1000000; i++) {
+      store.push([`Project-${i}`]);
+    }
+    let batch = 100000;
+    let prom = [];
+    for (let i = 0; i < 1000000; i += batch) {
+      let data = store.slice(i, i + batch);
+      prom.push(
+        new Promise((resolve, reject) => {
+          db.query(query, [data], (err, res) => {
+            if (err) reject(err);
+            else {
+              console.log(`Inserted batch ${i + batch}`);
 
+              resolve(res);
+            }
+          });
+        })
+      );
+    }
 
-
-    projects.forEach((ele) => {
-      store.push(Object.values(ele));
-    });
-
-
-    db.query(query, [store], (err, data) => {
-      if (err) {
-        result(err, null);
-        return;
-      }
-      result(null, projects);
-    });
+    Promise.all(prom)
+      .then((data) => {
+        console.log("succrsfully addded 1M proj");
+      })
+      .catch((err) => {
+        console.log("failed 1M pro");
+      });
   }
 
   static getAllProjects(result) {
@@ -115,20 +128,24 @@ class Project {
   static updateProject(project, id, result) {
     let query = "update  project set name=?,color=?,is_favorite=? where id=? ";
 
-    db.query(query, [project.name, project.color,project.is_favorite, id], (err, data) => {
-      if (err) {
-        result(err, null);
-        return;
+    db.query(
+      query,
+      [project.name, project.color, project.is_favorite, id],
+      (err, data) => {
+        if (err) {
+          result(err, null);
+          return;
+        }
+        if (data.affectedRows == 0) {
+          result({ kind: "not_found" }, null);
+          return;
+        }
+        result(null, { id: id, ...project });
       }
-      if (data.affectedRows == 0) {
-        result({ kind: "not_found" }, null);
-        return;
-      }
-      result(null, { id: id, ...project });
-    });
+    );
   }
 }
 
-Project.createProject("da","asd");
+Project.createProject();
 
 module.exports = Project;
