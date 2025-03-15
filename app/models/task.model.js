@@ -1,28 +1,28 @@
 let db = require("./db");
-let fs = require("fs");
 
 // Tasks
 // Create, Update, Delete a task
 // Each task will have content, description, due date, is_completed, created_at
+creatingTableTask();
 
 function creatTable() {
   return new Promise((resolve, reject) => {
     let query = `
-create table if not exists task (
- id int primary key auto_increment,
- content varchar(255) not null,
- description varchar(255) ,
- due_date date not null,
- is_completed boolean default false,
- created_at timestamp default current_timestamp,
- project_id  int not null,
- foreign key (project_id) references project(id) on delete cascade
-);
-`;
+      CREATE TABLE IF NOT EXISTS task (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        content VARCHAR(255) NOT NULL,
+        description VARCHAR(255),
+        due_date DATE NOT NULL,
+        is_completed BOOLEAN DEFAULT FALSE,
+        created_at DATE DEFAULT (CURDATE()),
+        project_id INT NOT NULL,
+        FOREIGN KEY (project_id) REFERENCES project(id) ON DELETE CASCADE
+      );
+    `;
 
     db.query(query, (err, res) => {
       if (err) {
-        throw new Error("Unbale to create the tables task");
+        reject(err);
       } else {
         resolve();
       }
@@ -32,138 +32,171 @@ create table if not exists task (
 
 async function creatingTableTask() {
   try {
-    let res = await creatTable();
+    await creatTable();
     console.log("Created the table task");
-    Task.createTask("", "");
   } catch (err) {
-    console.log(err.message);
+    console.log("Error creating table task or inserting data:", err.message);
   }
 }
-creatingTableTask();
 
-class Task {
-  constructor(task) {
-    this.content = task.content;
-    this.description = task.description;
-    this.due_date = task.due_date;
-    this.project_id = task.project_id;
-  }
-
-  static async createTask(task, result) {
-    let    oneLakh=100000;
-    let oneMillion=1000000;
-    let tenMillion=10000000;
+exports.createTask = (tasks) => {
+  return new Promise((resolve, reject) => {
     let query =
       "insert into task(content,description,due_date,project_id) values ?";
 
     let store = [];
-    for (let j = 1; j <= 10; j++) {
-      for (let i = 1; i <= oneMillion; i++) {
-        store.push([`Task-${i}`, `Descript-${i}`, new Date(), j]);
-      }
-    }
-
-  
-    for (let i = 0; i < store.length; i += oneMillion) {
-      let data = store.slice(i, i + oneMillion);
-      try {
-
-       
-        let prom=[];
-        for(let j=0;j<oneMillion;j+=oneLakh){
-          let chunkData=data.slice(j,j+oneLakh);
-
-          prom.push( new Promise((resolve, reject) => {
-            db.query(query, [data], (err, res) => {
-              if (err) reject(err);
-              else {
-                console.log(`Inserted chunk ${j + oneLakh}`);
-  
-                resolve(res);
-              }
-            });
-          }));
-          
-        }
-        await prom.all((data)=>{
-          console.log(`Inserted batch ${i + oneMillion}`);
-        })
-        .catch((err)=>{
-          console.log(err);
-          
-        })
-       
-      } catch (err) {
-        console.log("Unbake", err);
-      }
-    }
-  }
-
-  static getAllTasks(result) {
-    let query = "select * from task";
-    db.query(query, (err, data) => {
-      if (err) {
-        result(err, null);
-        return;
-      }
-      result(null, data);
+    tasks.forEach((task) => {
+      store.push(Object.values(task));
     });
-  }
 
-  static getTaskById(id, result) {
-    let query = "select * from task where id=?";
+    db.query(query, [store], (err, data) => {
+      if (err) {
+        reject("Unable add tasks " + err);
+      }
+      resolve(`${tasks.length} Tasks are added `);
+    });
+  });
+};
+
+exports.getTaskById = (id) => {
+  return new Promise((resolve, reject) => {
+    let query = "select * from task  where id=?";
+
     db.query(query, [id], (err, data) => {
       if (err) {
-        return result(err, null);
+        reject("Unable to fetch the task with given id " + id);
+      }
+      if (data.length == 0) {
+        reject("No  task with given id " + id);
+      }
+      resolve(data);
+    });
+  });
+};
+
+exports.getTaskByFilters = (queryFilters) => {
+  return new Promise((resolve, reject) => {
+    let query = "SELECT * FROM task WHERE 1=1";
+    let { project_id, due_date, is_completed, created_at } = queryFilters;
+
+    if (project_id) {
+      query += ` AND project_id=${db.escape(project_id)}`;
+    }
+    if (due_date) {
+      query += ` AND due_date=${db.escape(due_date)}`;
+    }
+    if (is_completed) {
+      query += ` AND is_completed=${is_completed}`;
+    }
+    if (created_at) {
+      query += ` AND created_at=${db.escape(created_at)}`;
+    }
+
+    db.query(query, (err, data) => {
+      if (err) {
+        reject("Unable to fetch tasks " + err);
+      }
+      if (data.length > 10) {
+        let temp = data.slice(0, 10);
+        resolve({
+          message: "the retuning tasks are very large limiting to 10 tasks",
+          data:temp
+        });
       }
 
-      result(null, data);
+      resolve(data);
     });
-  }
+  });
+};
 
-  static deleteTask(id, result) {
+exports.deleteTask = (id) => {
+  return new Promise((resolve, reject) => {
     let query = "delete from task where id=?";
     db.query(query, [id], (err, data) => {
       if (err) {
-        return result(err, null);
+        reject("Unable delete the task " + err);
       }
-      if (!data.affectedRows) {
-        err = {
-          message: "Not found",
-        };
-        return result(err);
+      if (data.affectedRows == 0) {
+        reject("No task with given id " + id);
       }
-
-      result(null, data);
+      resolve({message:"Task is deleted with given id "+id});
     });
-  }
+  });
+};
 
-  static deleteAllTasks(result) {
+exports.deleteAllTasks = () => {
+ return new Promise((resolve,reject)=>{
     let query = "delete from task ";
     db.query(query, (err, data) => {
       if (err) {
-        return result(err, null);
+        reject("Unable delete all the tasks " + err);
       }
-      result(null, data);
+      resolve({message:"All Tasks are deleted "});
     });
-  }
+  })
+  
+};
 
-  static updateTask(task, id, result) {
+exports.updateTask = (task, id) => {
+  return new Promise((resolve,reject)=>{
     let query =
-      "update  task set content=?,description=?,due_date=?,project_id=? where id=? ";
+    "update  task set content=?,description=?,due_date=?,is_completed=? where id=? ";
 
-    db.query(
-      query,
-      [task.content, task.description, task.due_date, task.project_id, id],
-      (err, data) => {
-        if (err) {
-          result(err, null);
-          return;
-        }
-        result(null, { id: id, ...task });
+  db.query(
+    query,
+    [task.content, task.description, task.due_date, task.is_completed, id],
+    (err, data) => {
+      if (err) {
+        reject("Unable update the task " + err);
       }
-    );
-  }
-}
+      if(data.affectedRows==0){
+        reject("No task is for given id "+id);
+      }
+      resolve({ id: id, ...task });
+    }
+  );
+  })
+  
+};
+exports.createFakeTasks = async () => {
+  console.time("starts");
 
-module.exports = Task;
+  let halfLakh = 50000;
+  let oneMillion = 1000000;
+  let query = "insert into task(content, description, due_date, project_id) values ?";
+
+  let store = [];
+  for (let i = 1; i <= oneMillion; i++) {
+    for (let j = 1; j <= 10; j++) {
+      store.push([
+        `Task-${j}`,
+        `Descript-${j}`,
+        new Date().toISOString().split("T")[0],
+        j,
+      ]);
+    }
+  }
+
+  for (let i = 0; i < store.length; i += halfLakh) {
+    let data = store.slice(i, i + halfLakh);
+
+    try {
+      await new Promise((resolve, reject) => {
+        db.query(query, [data], (err, res) => {
+          if (err) {
+            reject(err);
+          } else {
+            console.log(`Inserted chunk ${i + halfLakh}`);
+            resolve(res);
+          }
+        });
+      });
+    } catch (err) {
+      console.log("Unable to insert chunk", err);
+    }
+  }
+
+  console.timeEnd("starts");
+};
+
+

@@ -3,129 +3,115 @@ let db = require("./db");
 // Project
 // CRUD on projects
 // Each project will have name, color, is_favorite,
-
-function creatTable() {
-  return new Promise((resolve, reject) => {
-    let query = `
-        create table if not exists project (
-         id int primary key auto_increment,
-         name varchar(255) not null,
-         color varchar(255) default 'blue',
-         is_favorite boolean default false
-        );
-        `;
-
-    db.query(query, (err, res) => {
-      if (err) {
-        throw new Error("Unbale to create the tables project");
-      } else {
-        resolve();
-      }
-    });
-  });
-}
+creatingTableProject();
 
 async function creatingTableProject() {
   try {
-    let res = await creatTable();
-    console.log("Created the table project");
+    let res = await new Promise((resolve, reject) => {
+      let query = `
+          create table if not exists project (
+           id int primary key auto_increment,
+           name varchar(255) not null,
+           color varchar(255) default 'blue',
+           is_favorite boolean default false,
+           user_id int not null,
+           foreign key (user_id) references user(id) on delete cascade
+          );
+          `;
+
+      db.query(query, (err, res) => {
+        if (err) {
+          reject(new Error("Unbale to create the tables project,err " + err));
+        } else {
+          resolve("Created the table project");
+        }
+      });
+    });
+    console.log(res);
   } catch (err) {
     console.log(err.message);
   }
 }
-creatingTableProject();
 
-class Project {
-  constructor(project) {
-    this.name = project.name;
-    this.color = project.color;
-    this.is_favorite = project.is_favorite;
-  }
-
-  static createProject() {
-    let query = "insert into project(name) values ?";
+exports.createProject = function (projects) {
+  return new Promise((resolve, reject) => {
+    let query = "insert into project(name,color,is_favorite,user_id) values ?";
 
     let store = [];
 
-    for (let i = 1; i <= 1000000; i++) {
-      store.push([`Project-${i}`]);
-    }
-    let batch = 100000;
-    let prom = [];
-    for (let i = 0; i < 1000000; i += batch) {
-      let data = store.slice(i, i + batch);
-      prom.push(
-        new Promise((resolve, reject) => {
-          db.query(query, [data], (err, res) => {
-            if (err) reject(err);
-            else {
-              console.log(`Inserted batch ${i + batch}`);
+    projects.forEach((ele) => {
+      store.push(Object.values(ele));
+    });
 
-              resolve(res);
-            }
-          });
-        })
-      );
-    }
+    db.query(query, [store], (err, data) => {
+      if (err) {
+        reject(new Error("unbale to create Project, " + err));
+      }
 
-    Promise.all(prom)
-      .then((data) => {
-        console.log("succrsfully addded 1M proj");
-      })
-      .catch((err) => {
-        console.log("failed 1M pro");
-      });
-  }
+      resolve(`Created the ${projects.length} projects `);
+    });
+  });
+};
 
-  static getAllProjects(result) {
+exports.getAllProjects = () => {
+  return new Promise((resolve, reject) => {
     let query = "select * from project";
     db.query(query, (err, data) => {
       if (err) {
-        result(err, null);
-        return;
+        reject(new Error("Unable to fecth the all projects"));
       }
-      result(null, data);
+      resolve(data);
     });
-  }
+  });
+};
 
-  static getProjectById(id, result) {
+exports.getProjectById = (id) => {
+  return new Promise((resolve, reject) => {
     let query = "select * from project where id=?";
     db.query(query, [id], (err, data) => {
       if (err) {
-        return result(err, null);
+        reject(new Error("Unable to fetch project " + err));
+      }
+      if (data.length == 0) {
+        reject(new Error("No project on this id " + id));
       }
 
-      result(null, data);
+      resolve(data);
     });
-  }
+  });
+};
 
-  static deleteProject(id, result) {
+exports.deleteProject = (id) => {
+  return new Promise((resolve, reject) => {
     let query = "delete from project where id=?";
+
     db.query(query, [id], (err, data) => {
       if (err) {
-        return result(err, null);
+        reject(new Error("Unable to delete project " + err));
       }
       if (data.affectedRows == 0) {
-        // not found Tutorial with the id
-        result({ kind: "not_found" }, null);
-        return;
+        reject(new Error("No project on this id " + id));
       }
 
-      result(null, data);
+      resolve("Deleted project on id " + id);
     });
-  }
-
-  static deleteAllProjects(result) {
+  });
+};
+exports.deleteAllProjects = () => {
+  return new Promise((resolve, reject) => {
     let query = "delete from project ";
     db.query(query, (err, data) => {
       if (err) {
-        return result(err, null);
+        reject(new Error("Unable to delete all projects " + err));
       }
-      result(null, data);
-    });
-  }
 
-  static updateProject(project, id, result) {
+      resolve("Deleted all projects");
+    });
+  });
+};
+
+exports.updateProject = (project, id) => {
+  return new Promise((resolve, reject) => {
     let query = "update  project set name=?,color=?,is_favorite=? where id=? ";
 
     db.query(
@@ -133,19 +119,56 @@ class Project {
       [project.name, project.color, project.is_favorite, id],
       (err, data) => {
         if (err) {
-          result(err, null);
-          return;
+          reject(new Error("Unable to update the project id -" + id));
         }
         if (data.affectedRows == 0) {
-          result({ kind: "not_found" }, null);
-          return;
+          reject(new Error("No project on this id " + id));
         }
-        result(null, { id: id, ...project });
+        resolve({ id: id, ...project });
       }
     );
-  }
-}
+  });
+};
 
-Project.createProject();
+exports.createFakeProjects = function () {
+  return new Promise((resolve, reject) => {
+    let query = "insert into project(name,user_id) values ?";
+    let store = [];
+    let userId = 1;
 
-module.exports = Project;
+    for (let i = 1; i <= 1000000; i++) {
+      store.push([`Project-${i}`, userId]);
+      userId = (userId % 10) + 1;
+    }
+
+    let batch = 100000;
+    let prom = [];
+
+    for (let i = 0; i < store.length; i += batch) {
+      let data = store.slice(i, i + batch);
+
+      prom.push(
+        new Promise((resolveQuery, rejectQuery) => {
+          db.query(query, [data], (err, result) => {
+            if (err) {
+              rejectQuery(err);
+            } else {
+              console.log(`Inserted batch ${i + batch}`);
+              resolveQuery(result);
+            }
+          });
+        })
+      );
+    }
+
+    Promise.all(prom)
+      .then(() => {
+        console.log("Successfully added 1M projects");
+        resolve("Successfully added 1M projects");
+      })
+      .catch((err) => {
+        console.log("Failed to add 1M projects: " + err);
+        reject(err);
+      });
+  });
+};

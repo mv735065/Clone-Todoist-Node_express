@@ -3,9 +3,15 @@ const cors = require("cors");
 
 let app = express();
 
+let userRouter=require('./app/router/user.router.js')
+
+
 let projectRouter = require("./app/router/project.router.js");
 
 let taskRouter = require("./app/router/task.router.js");
+
+let commentRouter=require('./app/router/comment.router.js')
+
 
 const {
     validationErrorHandler,
@@ -26,6 +32,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/project", projectRouter);
 
 app.use("/task", taskRouter);
+
+app.use('/user',userRouter);
+
+app.use('/comment',commentRouter);
 
 app.use(validationErrorHandler);
 app.use(notFoundErrorHandler);

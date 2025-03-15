@@ -6,103 +6,89 @@ let {
   GeneralError,
 } = require("../middleware/errorTypes");
 
-exports.createProject = (req, res, next) => {
-  if (!req.body || Object.keys(req.body)==0) {
-    return next(
-      new ValidationError("Please provide content to create Project")
-    );
-  }
-  let project =req.body;
-
-  Project.createProject(project, (err, data) => {
-    if (err) {
-      return next(
-        new GeneralError(`${err.message} || "unbale to create project"`)
-      );
+exports.createProject = async (req, res) => {
+  try {
+    if (!req.body || Object.keys(req.body) == 0) {
+      throw new ValidationError("Please provide content to create Project");
     }
 
-    res.status(201).send(data);
-  });
+    let project = await Project.createProject(req.body);
+
+    res.status(201).send(project);
+  } catch (err) {
+    res.status(400).send({ message: err.message } || err);
+  }
 };
 
-exports.getAllProjects = (req, res, next) => {
-  Project.getAllProjects((err, data) => {
-    if (err) {
-      return next(
-        new GeneralError(`${err.message} || "unbale to retriew projects"`)
-      );
+exports.getAllProjects = async (req, res, next) => {
+  try {
+    let projects = await Project.getAllProjects();
+    res.send(projects);
+  } catch (err) {
+    res.status(400).send({ message: err.message || err} );
+  }
+};
+
+exports.getProjectById = async (req, res, next) => {
+  try {
+    let id = req.params.id;
+    if (isNaN(id)) {
+      throw new Error("Please provide id as number");
     }
-    res.send(data);
-  });
+
+    let project = await Project.getProjectById(id);
+    res.send(project);
+  } catch (err) {
+    res.status(500).send({message:`${err.message || "unbale to found project"}`});
+  }
 };
 
-exports.getProjectById = (req, res, next) => {
-  let id = req.params.id;
-  if (isNaN(id)) {
-    return next(new ValidationError("Please provide id as number"));
-  }
-
-  Project.getProjectById(id, (err, data) => {
-    if (err) {
-      return next(
-        new NotFoundError(`${err.message || "unbale to found project"}`)
-      );
+exports.deleteProject = async (req, res, next) => {
+  try {
+    let id = req.params.id;
+    if (isNaN(id)) {
+      throw new Error("Please provide id as number");
     }
-    res.status(202).json(data);
-  });
-};
 
-exports.deleteProject = (req, res, next) => {
-  let id = req.params.id;
-  if (isNaN(id)) {
-    return next(new ValidationError("Please provide id as number"));
+    let project = await Project.deleteProject(id);
+    res.send(project);
+  } catch (err) {
+    res.status(500).send({message:`${err.message || "unbale to delete project"}`});
   }
-  Project.deleteProject(id, (err, data) => {
-    if (err) {
-      if (err.kind === "not_found") {
-        return next(
-          new NotFoundError(`${err.message || "unbale to found project"} `)
-        );
-      } else {
-        return next(
-          new GeneralError(`${err.message || "unbale to delete projects"} `)
-        );
-      }
-    } else res.send({ message: `project was deleted successfully!` });
-  });
 };
 
-exports.deleteAllProjects = (req, res, next) => {
-  Project.deleteAllProjects((err, data) => {
-    if (err) {
-      return next(new NotFoundError(`${err.message || err}`));
+exports.deleteAllProjects = async (req, res, next) => {
+  try {
+    let data = await Project.deleteAllProjects();
+    res.status(200).send(data);
+  } catch (err) {
+    res.status(500).send({message:`${err.message || "unbale to delete all projects"}`});
+  }
+};
+
+exports.updateProject = async (req, res, next) => {
+  try {
+    if (!req.body || Object.keys(req.body) == 0) {
+      throw new Error("Please provide content to create Project");
     }
-    res.status(200).send("Deleted all projects");
-  });
+    if (!req.params.id || isNaN(req.params.id)) {
+      throw new Error("Please provide id as a  number ");
+    }
+    let result = await Project.updateProject(req.body, req.params.id);
+
+    res.status(201).send(result);
+  } catch (err) {
+    res.status(500).send({message:`${err.message || "unbale to update projects"}`});
+  }
 };
 
-exports.updateProject = (req, res, next) => {
-  if (!req.body || Object.keys(req.body)==0) {
-    return next(
-      new ValidationError("Please provide content to create Project")
-    );
+exports.createFakeProjects=async(req,res)=>{
+  try{
+  let data= await Project.createFakeProjects();
+   res.send(data);
   }
-  if (!req.params.id || isNaN(req.params.id)) {
-    return next(new ValidationError("Please provide id as a  number "));
+  catch(err){
+    res.status(500).send({message:err.message || "Not able to creeate fake projects"});
   }
-  let project = new Project(req.body);
-
-  Project.updateProject(project, req.params.id, (err, data) => {
-    if (err) {
-      if (err.kind === "not_found") {
-        return next(
-          new NotFoundError(`${err.message || "unbale to found project"} `)
-        );
-      } else {
-        return next(
-          new GeneralError(`${err.message || "unbale to update projects"} `)
-        );
-      }
-    } else res.status(201).send(data);
-  });
-};
+  
+}

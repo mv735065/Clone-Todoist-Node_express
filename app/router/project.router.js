@@ -14,4 +14,6 @@ router.get("/:id", project.getProjectById);
 
 router.delete("/:id", project.deleteProject);
 
+router.post('/createFake',project.createFakeProjects);
+
 module.exports = router;

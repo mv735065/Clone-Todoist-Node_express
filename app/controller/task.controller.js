@@ -1,96 +1,109 @@
 let Task = require("../models/task.model.js");
 
-exports.createTask = (req, res) => {
- 
-if (!req.body || Object.keys(req.body).length === 0) {
+exports.createTask = async (req, res) => {
+  try {
+    if (!req.body || Object.keys(req.body).length === 0) {
+      throw new Error(
+        "Enter the details of atsk or some fileds are data missing"
+      );
+    }
+    let task = await Task.createTask(req.body);
+
+    res.status(201).send(task);
+  } catch (err) {
+    res.status(500).send({
+      message:
+        err || "unbale to create task or some fileds are data missing ",
+    });
+  }
+};
+
+exports.getTaskById = async (req, res) => {
+  try {
+    let id = req.params.id;
+    if (isNaN(id)) {
+      throw new Error("Please provide id as number");
+    }
+
+    let task =await Task.getTaskById(id);
+    res.send(task);
+  } catch (err) {
+    res.status(500).send({
+      message: "unbale to get task "+err
+    });
+  }
+};
+
+exports.getTaskByFilters = async(req, res) => {
+try{
+ let data=await Task.getTaskByFilters(req.query);
+  res.status(202).json(data);
+}
+catch(err){
   res.status(400).send({
-    message: "Enter the details of atsk",
+    message: err.message || "unbale to found tasks "+err,
   });
-  return;
 }
 
-
-  Task.createTask(req.body, (err, data) => {
-    if (err) {
-      return res.status(404).send({
-        message: "unbale to create task or some fileds are data missing",
-      });
-    }
-
-    res.status(201).send(data);
-  });
 };
 
-exports.getAllTasks = (req, res) => {
-  Task.getAllTasks((err, data) => {
-    if (err) {
-      return res.status(400).send({
-        message: err.message || "unbale to retriew tasks",
-      });
+exports.deleteTask =async (req, res) => {
+  try {
+    let id = req.params.id;
+    if (isNaN(id)) {
+      throw new Error("Please provide id as number");
     }
-    res.send(data);
-  });
-};
 
-exports.getTaskById = (req, res) => {
-  let id = req.params.id;
-
-  Task.getTaskById(id, (err, data) => {
-    if (err) {
-      return res.status(400).send({
-        message: err.message || "unbale to found task",
-      });
-    }
-    res.status(202).json(data);
-  });
-};
-
-exports.deleteTask = (req, res) => {
-  let id = req.params.id;
-
-  Task.deleteTask(id, (err, data) => {
-    if (err) {
-      return res.status(400).send({
-        message: err.message || "unbale to found task",
-      });
-    }
-    res.status(200).send(`Deleted task id-${id}`);
-  });
-};
-
-exports.deleteAllTasks = (req, res) => {
-  Task.deleteAllTasks((err, data) => {
-    if (err) {
-      return res.status(400).send({
-        message: err.message || "unbale to found task",
-      });
-    }
-    res.status(200).send("Deleted all tasks");
-  });
-};
-
-exports.updateTask = (req, res) => {
-  if (!req.body) {
-    res.status(400).send({
-      message: "Enter the details of task to update",
+    let task =await Task.deleteTask(id);
+    res.status(200).send(task);
+  } catch (err) {
+    res.status(500).send({
+      message: err || "unbale to delete task ",
     });
-    return;
   }
-  if (!req.params.id) {
-    res.status(400).send({
-      message: "Enter the id of task to update",
-    });
-    return;
-  }
-  let task = new Task(req.body);
 
-  Task.updateTask(task, req.params.id, (err, data) => {
-    if (err) {
-      return res.status(404).send({
-        message: err.message || "unbale to create task",
-      });
+};
+
+exports.deleteAllTasks =async (req, res) => {
+  try{
+  let data= await Task.deleteAllTasks();
+  res.status(200).send(data);
+  }
+  catch(err){
+    res.status(400).send({
+      message: err.message || "unbale to delete all  task ",
+    });
+  }
+};
+
+exports.updateTask = async(req, res) => {
+  try{
+    if (!req.body || Object.keys(req.body).length === 0) {
+      throw new Error(
+        "Enter the details of atsk or some fileds are data missing to update"
+      );
+    }
+    let id = req.params.id;
+    if (isNaN(id)) {
+      throw new Error("Please provide id as number to update");
     }
 
-    res.status(201).send(data);
-  });
+  let task= await Task.updateTask(req.body,id)
+  res.status(201).send(task);
+  }
+  catch(err){
+     res.status(404).send({
+      message: err.message|| "unbale to update task",
+    });
+  }
 };
+
+exports.createFakeTasks=async(req,res)=>{
+  try{
+    let tasks= await Task.createFakeTasks();
+    res.send("Fake tasks created");
+  }
+  catch(err){
+    res.status(500).send("Fake tasks not created "+err);
+  }
+}

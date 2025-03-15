@@ -4,13 +4,17 @@ let task = require("../controller/task.controller.js");
 
 router.post("/", task.createTask);
 
-router.get("/", task.getAllTasks);
 
 router.delete("/", task.deleteAllTasks);
 
 router.put("/:id", task.updateTask);
 
+router.get("/", task.getTaskByFilters);
+
 router.get("/:id", task.getTaskById);
+
+router.post('/createFakeTask',task.createFakeTasks);
+
 
 router.delete("/:id", task.deleteTask);
 
