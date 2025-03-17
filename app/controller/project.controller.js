@@ -76,7 +76,9 @@ exports.updateProject = async (req, res, next) => {
     }
     let result = await Project.updateProject(req.body, req.params.id);
 
-    res.status(201).send(result);
+    let updatedProject=await Project.getProjectById( req.params.id);
+
+    res.status(201).send(updatedProject);
   } catch (err) {
     res.status(500).send({message:`${err.message || "unbale to update projects"}`});
   }

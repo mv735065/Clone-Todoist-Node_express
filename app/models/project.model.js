@@ -112,11 +112,11 @@ exports.deleteAllProjects = () => {
 
 exports.updateProject = (project, id) => {
   return new Promise((resolve, reject) => {
-    let query = "update  project set name=?,color=?,is_favorite=? where id=? ";
+    let query = "update  project set is_favorite=? where id=? ";
 
     db.query(
       query,
-      [project.name, project.color, project.is_favorite, id],
+      [ project.is_favorite, id],
       (err, data) => {
         if (err) {
           reject(new Error("Unable to update the project id -" + id));
@@ -129,6 +129,9 @@ exports.updateProject = (project, id) => {
     );
   });
 };
+
+
+
 
 exports.createFakeProjects = function () {
   return new Promise((resolve, reject) => {

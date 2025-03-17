@@ -126,10 +126,61 @@ exports.getAllComments = () => {
           if (data.affectedRows == 0) {
             reject(new Error("No comment on this id " + id));
           }
-          resolve({ id: id, ...comment });
+          resolve({ id: id });
         }
       );
     });
   };
+
+
+  exports.getAllCommentsFromUser = (userId) => {
+    return new Promise((resolve, reject) => {
+      let query = "select * from comment  where user_id=?";
+  
+      db.query(query, [userId], (err, data) => {
+        if (err) {
+          reject("Unable to fetch the comment with given userId " + userId);
+        }
+        if (data.length == 0) {
+          reject("No  comment with given userId " + userId);
+        }
+        resolve(data);
+      });
+    });
+  };
+
+
+  exports.getAllCommentsPerProject = (project_id) => {
+    return new Promise((resolve, reject) => {
+      let query = "select * from comment  where task_id is null &&  project_id=?";
+  
+      db.query(query, [project_id], (err, data) => {
+        if (err) {
+          reject("Unable to fetch the comment with given project_id " + project_id);
+        }
+        if (data.length == 0) {
+          reject("No  comment with given project_id " + project_id);
+        }
+        resolve(data);
+      });
+    });
+  };
+
+  exports.getAllCommentsPerTask = (project_id,task_id) => {
+    return new Promise((resolve, reject) => {
+      let query = "select * from comment  where   project_id=? && task_id=?";
+  
+      db.query(query, [project_id,task_id], (err, data) => {
+        if (err) {
+          reject("Unable to fetch the comment with given task_id " + task_id);
+        }
+        if (data.length == 0) {
+          reject("No  comment with given task_id " + task_id);
+        }
+        resolve(data);
+      });
+    });
+  };
+
   
   

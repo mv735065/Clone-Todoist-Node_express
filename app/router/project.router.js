@@ -8,7 +8,7 @@ router.get("/", project.getAllProjects);
 
 router.delete("/", project.deleteAllProjects);
 
-router.put("/:id", project.updateProject);
+router.patch("/:id", project.updateProject);
 
 router.get("/:id", project.getProjectById);
 

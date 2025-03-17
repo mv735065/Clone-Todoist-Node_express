@@ -71,15 +71,71 @@ exports.deleteAllComments = async (req, res, next) => {
 exports.updateComment = async (req, res, next) => {
   try {
     if (!req.body || Object.keys(req.body) == 0) {
-      throw new Error("Please provide content to create Comment");
+      throw new Error("Please provide content to update Comment");
     }
     if (!req.params.id || isNaN(req.params.id)) {
       throw new Error("Please provide id as a  number ");
     }
     let result = await Comment.updateComment(req.body, req.params.id);
+     
+   let updatedCommnet= await Comment.getCommentById(req.params.id);
 
-    res.status(201).send(result);
+    res.status(201).send(...updatedCommnet);
   } catch (err) {
     res.status(500).send({message:`${err.message || "unbale to update comment"}`});
+  }
+};
+
+
+
+exports.getAllCommentsFromUser = async (req, res) => {
+  try {
+    let id = req.params.id;
+    if (isNaN(id)) {
+      throw new Error("Please provide id as number");
+    }
+
+    let comment =await Comment.getAllCommentsFromUser(id);
+    res.send(comment);
+  } catch (err) {
+    res.status(500).send({
+      message: ""+err
+    });
+  }
+};
+
+
+
+
+exports.getAllCommentsPerProject = async (req, res) => {
+  try {
+    let id = req.params.id;
+    if (isNaN(id)) {
+      throw new Error("Please provide id as number");
+    }
+
+    let comment =await Comment.getAllCommentsPerProject(id);
+    res.send(comment);
+  } catch (err) {
+    res.status(500).send({
+      message: ""+err
+    });
+  }
+};
+
+
+exports.getAllCommentsPerTask = async (req, res) => {
+  try {
+    let {projectId,taskId} = req.params;
+    if (isNaN(projectId) ||isNaN(taskId) ) {
+      throw new Error("Please provide id as number");
+    }
+
+    let comment =await Comment.getAllCommentsPerTask(projectId,taskId);
+    res.send(comment);
+  } catch (err) {
+    res.status(500).send({
+      message: ""+err
+    });
   }
 };
